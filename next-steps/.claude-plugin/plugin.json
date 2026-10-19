@@ -1,6 +1,6 @@
 {
   "name": "next-steps",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "After each turn, 2 or 3 likely next prompts above the prompt: buttons on the desktop, 1 to 3 in the terminal",
   "author": { "name": "Brad Traversy" },
   "types": "./types/index.d.ts",
