@@ -1,0 +1,4 @@
+{
+  "description": "Tool card rendering hooks",
+  "modules": ["./register.tsx"]
+}
