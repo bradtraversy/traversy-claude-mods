@@ -1,0 +1,15 @@
+{
+  "name": "next-steps",
+  "version": "0.3.0",
+  "description": "After each turn, 2 or 3 likely next prompts above the prompt: buttons on the desktop, 1 to 3 in the terminal",
+  "author": { "name": "Brad Traversy" },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "default": "",
+      "description": "Write the suggestions in this language (e.g. Korean). Empty keeps English."
+    }
+  }
+}

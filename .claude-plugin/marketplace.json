@@ -14,6 +14,11 @@
       "name": "tool-cards",
       "source": "./tool-cards",
       "description": "Replaces tool-use rows with diagnostic cards that show status, timing, results, and details"
+    },
+    {
+      "name": "next-steps",
+      "source": "./next-steps",
+      "description": "Suggests 2 or 3 likely next prompts after each turn, as buttons on the desktop and numbered picks in the terminal"
     }
   ]
 }
