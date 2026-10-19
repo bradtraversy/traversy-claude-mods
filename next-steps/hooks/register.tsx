@@ -1,6 +1,6 @@
 // Next Steps: after each turn, 2 or 3 likely next prompts above the input.
 // In an empty prompt, 1 to 3 drafts one (nothing sends on its own) and 0 dismisses.
-// On the desktop they are buttons instead: a click drafts one, the close mark dismisses.
+// On the desktop they are buttons instead: a click drafts one, the last button dismisses.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
