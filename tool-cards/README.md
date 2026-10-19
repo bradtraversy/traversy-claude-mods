@@ -1,6 +1,6 @@
 # Tool Cards
 
-Tool Cards replaces Claude Code's standard tool-use row with a clean, spacious card that makes the action, current state, tool, timing, and result easy to scan. Each card uses a tool-specific icon, a human-readable action title, muted metadata, and a right-aligned Details control when output is available. Tool output stays collapsed by default, including structured results from MCP tools such as Work Queue.
+Tool Cards replaces Claude Code's standard tool-use row with a clean, spacious card that makes the action, current state, tool, timing, and result easy to scan. Each card uses a tool-specific icon, a human-readable action title, muted metadata, and a right-aligned Details control when output is available. Tool output stays collapsed by default, including structured results from MCP tools.
 
 Desktop uses the full padded card treatment. The terminal uses a compact two-line row with no icon tile, outer margin, or vertical card padding so repeated tool calls do not take over the transcript.
 
@@ -10,11 +10,14 @@ Desktop uses the full padded card treatment. The terminal uses a compact two-lin
 
 ## Install
 
+Add the marketplace once, then install the mod:
+
 ```bash
+claude plugin marketplace add bradtraversy/traversy-claude-mods
 claude plugin install tool-cards@traversy-mods
 ```
 
-Restart the session or enter `/reload-plugins` after installation.
+Restart the session or enter `/reload-plugins` after installation. Run `/plugin` to confirm it is enabled.
 
 ## States
 
@@ -54,6 +57,12 @@ For file tools, the card displays the file path. For Bash, it displays the comma
 8. Run several reads or searches and confirm that their completed cards remain visible instead of collapsing into a summary line.
 
 The green `Completed` label is part of this mod. Disable Tool Cards from `/plugin` to return to Claude Code's normal tool rows.
+
+## Uninstall
+
+```bash
+claude plugin uninstall tool-cards@traversy-mods
+```
 
 ## Source
 

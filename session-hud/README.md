@@ -4,13 +4,21 @@ Session HUD draws a compact telemetry strip above the prompt with the current Gi
 
 ![Session HUD telemetry strip showing branch and context usage](../docs/images/session-hud.png)
 
+- Git branch, with a yellow warning when you are on `main`, `master`, or a detached HEAD
+- Context usage against a personal target you set
+- Weekly account usage at a glance
+- A Details pane with the full context breakdown, account limits, and session cost
+
 ## Install
 
+Add the marketplace once, then install the mod:
+
 ```bash
+claude plugin marketplace add bradtraversy/traversy-claude-mods
 claude plugin install session-hud@traversy-mods
 ```
 
-Restart the session or enter `/reload-plugins` after installation.
+Restart the session or enter `/reload-plugins` after installation. Run `/plugin` to confirm it is enabled.
 
 ## How it works
 
@@ -18,7 +26,7 @@ The branch signal and name appear first. Working branches use green. `main` and 
 
 The context meter carries the strongest visual weight, followed by the compact `Week` label for overall seven-day account usage. Select `Details` to open Session Details. Its context-budget summary shows how much context is used, the percentage of the personal target, and how much headroom remains. The pane also shows:
 
-![Session Details showing context headroom, cost, and context makeup](../docs/images/session-hud-details.png)
+<img src="../docs/images/session-hud-details.png" alt="Session Details showing context headroom, cost, and context makeup" width="360">
 
 - Five-hour account usage with its reset time
 - Weekly account usage with its reset time
@@ -57,6 +65,12 @@ The meter is green below 70 percent, yellow from 70 through 89 percent, and red 
 7. Select `Details` beside the progress bar.
 8. Confirm that Session Details shows context headroom, five-hour usage, weekly usage, session cost, context categories, and any connected MCP tool schemas.
 9. Select `Change`, enter another context target, and confirm that the percentage updates after the mod reloads.
+
+## Uninstall
+
+```bash
+claude plugin uninstall session-hud@traversy-mods
+```
 
 ## Source
 

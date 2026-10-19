@@ -1,20 +1,43 @@
 # Traversy Claude Mods
 
-Claude Code mods by Brad Traversy. Session HUD adds a compact telemetry strip above the prompt, and Tool Cards replaces tool-use rows with cleaner diagnostic cards.
+Two small Claude Code mods that make long sessions easier to read: a telemetry strip above the prompt and cleaner tool-use cards in the transcript. Both work in the terminal and in the Code tab of Claude Desktop.
 
-Each mod is a small, independent Claude Code plugin written in TypeScript. Install one or both.
+```bash
+claude plugin marketplace add bradtraversy/traversy-claude-mods
+claude plugin install session-hud@traversy-mods
+claude plugin install tool-cards@traversy-mods
+```
 
 > [!IMPORTANT]
 > Mods run inside Claude Code with your user permissions. They can see session events, start processes, access files, and make network requests. Read the source before installing any mod, including these.
 
 ## Included mods
 
-| Mod | What it does | How to open or test it |
-| --- | --- | --- |
-| [Session HUD](./session-hud/README.md) | Shows branch safety, context headroom, and weekly usage in a compact telemetry strip | Switch branches or select `Details` beside the context meter |
-| [Tool Cards](./tool-cards/README.md) | Replaces normal tool-use rows with diagnostic cards for status, timing, results, and details | Ask Claude to read a file, edit code, or run a command |
+### [Session HUD](./session-hud/README.md)
 
-Each mod README contains its installation command, usage guide, test steps, and interface images. The images are source-accurate mockups of the current mods in Claude Desktop. Exact spacing and colors can vary by platform and Claude version.
+A compact strip above the prompt with your Git branch, context usage against a target you choose, and weekly account usage. Select `Details` for a full context breakdown, five-hour and weekly limits, and session cost.
+
+![Session HUD telemetry strip above the prompt](./docs/images/session-hud.png)
+
+```bash
+claude plugin install session-hud@traversy-mods
+```
+
+[Read the Session HUD guide](./session-hud/README.md)
+
+### [Tool Cards](./tool-cards/README.md)
+
+Replaces Claude Code's tool-use rows with clean cards that show the action, status, tool, timing, and result. Output stays collapsed behind `Details` until you want it, and failures open automatically.
+
+![Tool Cards showing a completed Bash command](./docs/images/tool-cards.png)
+
+```bash
+claude plugin install tool-cards@traversy-mods
+```
+
+[Read the Tool Cards guide](./tool-cards/README.md)
+
+The images show the mods in Claude Desktop. Exact spacing and colors can vary by platform and Claude version.
 
 ## What is a mod?
 
