@@ -6,8 +6,6 @@ Desktop uses the full padded card treatment. The terminal uses a compact two-lin
 
 ![Tool Cards showing a completed Bash command](../docs/images/tool-cards.png)
 
-![Tool Cards showing expanded Bash output](../docs/images/tool-cards-details.png)
-
 ## Install
 
 Add the marketplace once, then install the mod:
