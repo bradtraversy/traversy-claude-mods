@@ -115,6 +115,7 @@ test('shows usage against the configured context maximum on terminal and desktop
     return { value: event.value }
   })
 
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Box', props: {}, children: [] }))
   await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/project' })
 
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -256,6 +257,7 @@ test('uses the saved context target', { options: { context_max_tokens: 200_000 }
     },
   }))
 
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Box', props: {}, children: [] }))
   await $.session.start({ surface: 'desktop', isInteractive: true, cwd: '/project' })
   const ui = await $.ui.mount({
     plugin: 'session-hud',
@@ -291,6 +293,7 @@ test('clears detailed usage when clear starts a new session', async ($, on) => {
     },
   }))
 
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Box', props: {}, children: [] }))
   await $.session.start({ surface: 'desktop', isInteractive: true, cwd: '/project' })
   const band = await $.ui.mount({
     plugin: 'session-hud',
@@ -320,4 +323,29 @@ test('clears detailed usage when clear starts a new session', async ($, on) => {
   expect(await pane.find({ type: 'Text', text: 'Messages' })).toBeUndefined()
   await pane.unmount()
   await band.unmount()
+})
+
+test('keeps bands other mods draw above the prompt', async ($, on) => {
+  on('session.usage', () => ({ value: USAGE }))
+  on('session.start', ($, event) => ({ cwd: event.cwd }))
+  on('session.cwd', () => ({ value: '/project' }))
+  on('process.run', () => ({
+    value: {
+      exitCode: 0,
+      stdout: 'main',
+      stderr: '',
+      isStdoutTruncated: false,
+      isStderrTruncated: false,
+    },
+  }))
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'Text', props: {}, children: ['next: run the tests'] }))
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    await $.session.start({ surface, isInteractive: true, cwd: '/project' })
+    const ui = await $.ui.mount({ plugin: 'session-hud', surface, component: 'AbovePrompt', props: PROPS })
+
+    expect(await ui.find({ type: 'Text', text: 'next: run the tests' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'Context' })).toBeDefined()
+    await ui.unmount()
+  }
 })

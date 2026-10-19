@@ -391,6 +391,8 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, event, next) => {
     if (event.props.hasSurvey) return next(event)
 
+    // Bands other mods draw beneath this hook only show if passed on.
+    const rest = await next(event)
     const { Box, Button, Text } = $.ui.resolve(event)
     const usage = await $.session.usage()
     const tokens = usage.context.tokens ?? 0
@@ -405,6 +407,7 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
+        {rest}
         <Box gap={2} alignItems="center" flexWrap="wrap" overflow="hidden">
           <Box gap={1} alignItems="center" flexShrink={1} minWidth={0} overflow="hidden">
             <Text color={branchColor(branchState.kind)} bold>●</Text>
