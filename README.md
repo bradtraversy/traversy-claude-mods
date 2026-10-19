@@ -191,7 +191,7 @@ Register the clone itself as a local marketplace:
 claude plugin marketplace add /absolute/path/to/traversy-claude-mods
 ```
 
-Then install either mod from `traversy-mods`. A marketplace added from a local directory reads these relative plugin directories in place, so edits appear after a new session starts or after `/reload-plugins`.
+Then install the mods from `traversy-mods`. Claude Code runs a copy of each mod taken at install or update time, keyed by its `version`, not the folder itself. To load an edit, bump the mod's `version` in `.claude-plugin/plugin.json`, then run `claude plugin marketplace update traversy-mods` and `claude plugin update <mod>@traversy-mods`, and start a new session. For quick iteration without version bumps, use `--plugin-dir` as in step 4.
 
 This is the easiest development setup for sharing the exact same working directory between terminal sessions and local desktop Code sessions.
 
@@ -255,7 +255,7 @@ claude plugin update session-hud@traversy-mods
 
 Then restart the session or enter `/reload-plugins`.
 
-Developers working from a local marketplace do not need an update command. Pull the repository and reload the plugins.
+A local marketplace needs the same update command after you pull, since the installed copy only changes when the mod's `version` does.
 
 ## Disable or uninstall a mod
 

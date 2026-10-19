@@ -2,7 +2,7 @@
 
 Next Steps suggests two or three likely next prompts after each turn and shows them above the prompt.
 
-- On the desktop each suggestion is a button. Click one to put it in the prompt box, where you can edit it before sending. The Dismiss suggestions button clears them.
+- On the desktop each suggestion is a button. Click one to put it in the prompt box, where you can edit it before sending. The ✕ at the end clears them.
 - In the terminal they show as a numbered line. Press 1, 2 or 3 in an empty prompt to draft one, or 0 to dismiss.
 - Nothing is ever sent on its own.
 

@@ -79,24 +79,27 @@ export const register: Register = (on, options) => {
       const chips = (
         <Box flexDirection="row" flexWrap="wrap" gap={1} alignItems="center" paddingBottom={1}>
           {s.items.map((text, i) => (
-            <Button
-              key={`next-step-${i + 1}`}
-              variant="secondary"
-              onPress={async () => {
-                await $.prompt.fill({ text })
-                await setSteps($, () => null)
-              }}
-            >
-              <Text dimColor>{`${i + 1}`}</Text> {text}
-            </Button>
+            // The desktop draws Buttons natively and drops text color inside them, so the number sits outside.
+            <Box key={`next-step-row-${i + 1}`} gap={1} alignItems="center">
+              <Text color="suggestion" bold>{`${i + 1}`}</Text>
+              <Button
+                key={`next-step-${i + 1}`}
+                label={text}
+                variant="secondary"
+                onPress={async () => {
+                  await $.prompt.fill({ text })
+                  await setSteps($, () => null)
+                }}
+              />
+            </Box>
           ))}
-          <Button key="next-steps-dismiss" label="Dismiss suggestions" role="dismiss" onPress={() => setSteps($, () => null)} />
+          <Button key="next-steps-dismiss" label="✕" dimColor onPress={() => setSteps($, () => null)} />
         </Box>
       )
       return stackBands(rest, 'next-steps', chips, 'above', order)
     }
 
-    const sep =<Text dimColor>{'  ·  '}</Text>
+    const sep = <Text dimColor>{'  ·  '}</Text>
     const item = (text: string, i: number) => [
       <Text color="cyan" bold>{`${i + 1} `}</Text>,
       <Text>{text}</Text>,
