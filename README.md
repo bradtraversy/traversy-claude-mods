@@ -1,11 +1,12 @@
 # Traversy Claude Mods
 
-Two small Claude Code mods that make long sessions easier to read: a telemetry strip above the prompt and cleaner tool-use cards in the transcript. Both work in the terminal and in the Code tab of Claude Desktop.
+Three small Claude Code mods for long sessions: a telemetry strip above the prompt, cleaner tool-use cards in the transcript, and suggested next prompts after each turn. All three work in the terminal and in the Code tab of Claude Desktop.
 
 ```bash
 claude plugin marketplace add bradtraversy/traversy-claude-mods
 claude plugin install session-hud@traversy-mods
 claude plugin install tool-cards@traversy-mods
+claude plugin install next-steps@traversy-mods
 ```
 
 > [!IMPORTANT]
@@ -36,6 +37,16 @@ claude plugin install tool-cards@traversy-mods
 ```
 
 [Read the Tool Cards guide](./tool-cards/README.md)
+
+### [Next Steps](./next-steps/README.md)
+
+After each turn, two or three likely next prompts appear above the prompt. On the desktop each one is a button that drafts it into the prompt box. In the terminal, press 1, 2 or 3 in an empty prompt. Each suggestion round is one small Haiku call. Based on Hamza Zafar's next-steps mod.
+
+```bash
+claude plugin install next-steps@traversy-mods
+```
+
+[Read the Next Steps guide](./next-steps/README.md)
 
 The images show the mods in Claude Desktop. Exact spacing and colors can vary by platform and Claude version.
 
@@ -94,6 +105,7 @@ You can also enter this in a Claude Code session:
 ```bash
 claude plugin install session-hud@traversy-mods
 claude plugin install tool-cards@traversy-mods
+claude plugin install next-steps@traversy-mods
 ```
 
 Inside an interactive session, the same commands start with `/plugin install` instead of `claude plugin install`.
@@ -123,7 +135,7 @@ You can also use the desktop plugin manager. Click the plus button beside the pr
 
 ## How the mods work together
 
-Session HUD owns the band above the prompt and Tool Cards owns tool-use rows in the transcript. They use different interface regions, so nothing overlaps.
+Tool Cards owns tool-use rows in the transcript. Session HUD and Next Steps share the band above the prompt: each passes on what the other draws, so the suggestions sit above the telemetry strip.
 
 ## Develop locally from scratch
 
@@ -136,12 +148,13 @@ git clone https://github.com/bradtraversy/traversy-claude-mods.git
 cd traversy-claude-mods
 ```
 
-### 2. Validate the marketplace and both mods
+### 2. Validate the marketplace and the mods
 
 ```bash
 claude plugin validate .
 claude plugin validate ./session-hud
 claude plugin validate ./tool-cards
+claude plugin validate ./next-steps
 ```
 
 Validation reads the mod without executing it. Review the reported `hooks:` and `calls:` lines to see what it handles and which Claude Code APIs it uses.
@@ -151,6 +164,7 @@ Validation reads the mod without executing it. Review the reported `hooks:` and 
 ```bash
 claude plugin test ./session-hud
 claude plugin test ./tool-cards
+claude plugin test ./next-steps
 ```
 
 The interface tests mount each mod on simulated terminal and desktop surfaces.
@@ -183,7 +197,7 @@ This is the easiest development setup for sharing the exact same working directo
 
 ## Anatomy of each mod
 
-Both directories follow the same basic structure:
+Each directory follows the same basic structure:
 
 ```text
 mod-name/
@@ -289,7 +303,7 @@ claude plugin validate ./path-to-mod
 
 Read the reported handlers and API calls, then inspect the source. A mod can potentially read files and environment variables, start processes, make network requests, observe prompts and tool calls, alter session behavior, and spend model usage.
 
-Both mods are intentionally small enough to inspect directly.
+The mods are intentionally small enough to inspect directly. Next Steps sends your last few messages to Haiku after each turn.
 
 ## Documentation
 
