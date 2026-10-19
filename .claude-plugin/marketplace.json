@@ -1,0 +1,19 @@
+{
+  "name": "traversy-mods",
+  "description": "Personal Claude Code mods from Brad Traversy",
+  "owner": {
+    "name": "Brad Traversy"
+  },
+  "plugins": [
+    {
+      "name": "session-hud",
+      "source": "./session-hud",
+      "description": "Shows branch safety, context headroom, and account usage in a compact session telemetry strip"
+    },
+    {
+      "name": "tool-cards",
+      "source": "./tool-cards",
+      "description": "Replaces tool-use rows with diagnostic cards that show status, timing, results, and details"
+    }
+  ]
+}
