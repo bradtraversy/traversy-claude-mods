@@ -1,0 +1,16 @@
+{
+  "name": "session-hud",
+  "version": "0.5.2",
+  "description": "Shows branch safety, context headroom, and account usage in a compact session telemetry strip",
+  "author": { "name": "Brad Traversy" },
+  "userConfig": {
+    "context_max_tokens": {
+      "type": "number",
+      "title": "Context target",
+      "description": "Token count that Session HUD treats as 100 percent context usage",
+      "default": 300000,
+      "min": 10000,
+      "max": 10000000
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "description": "Session HUD hooks",
+  "modules": ["./register.tsx"]
+}
