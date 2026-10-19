@@ -40,7 +40,7 @@ claude plugin install tool-cards@traversy-mods
 
 ### [Next Steps](./next-steps/README.md)
 
-After each turn, two or three likely next prompts appear above the prompt. On the desktop each one is a button that drafts it into the prompt box. In the terminal, press 1, 2 or 3 in an empty prompt. Each suggestion round is one small Haiku call. Based on Hamza Zafar's next-steps mod.
+After each turn, two or three likely next prompts appear above the prompt. On the desktop each one is a button that drafts it into the prompt box. In the terminal, press 1, 2 or 3 in an empty prompt. Each suggestion round is one small Haiku call. A fork of [next-steps](https://github.com/hamzafer/claude-code-mods/tree/main/mods/next-steps) by [Hamza Zafar](https://github.com/hamzafer), with desktop buttons added.
 
 ```bash
 claude plugin install next-steps@traversy-mods

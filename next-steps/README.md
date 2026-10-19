@@ -6,6 +6,8 @@ Next Steps suggests two or three likely next prompts after each turn and shows t
 - In the terminal they show as a numbered line. Press 1, 2 or 3 in an empty prompt to draft one, or 0 to dismiss.
 - Nothing is ever sent on its own.
 
+Next Steps is a fork of [next-steps](https://github.com/hamzafer/claude-code-mods/tree/main/mods/next-steps) by [Hamza Zafar](https://github.com/hamzafer), used under the MIT license. The suggestion logic, terminal layout and band ordering are his. This version adds the desktop buttons.
+
 ## Install
 
 Add the marketplace once, then install the mod:
@@ -35,4 +37,4 @@ claude plugin uninstall next-steps@traversy-mods
 
 ## Source
 
-[`hooks/register.tsx`](./hooks/register.tsx). Based on [next-steps](https://github.com/hamzafer/claude-code-mods) by Hamza Zafar, MIT licensed. See [`LICENSE`](./LICENSE).
+[`hooks/register.tsx`](./hooks/register.tsx). Hamza Zafar's original copyright and MIT license are kept in [`LICENSE`](./LICENSE).
