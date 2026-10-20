@@ -441,6 +441,36 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
     }
 
+    if (event.surface === 'vscode') {
+      return (
+        <Box flexDirection="column" minWidth={0} overflow="hidden" paddingX={0.5} paddingY={0.25}>
+          <Box alignItems="center" gap={1} overflow="hidden">
+            <Text color={toolColor(event.props.tool)} bold>{toolGlyph(event.props.tool)}</Text>
+            <Box flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+              <Text bold wrap="truncate-middle">{actionTitle(event.props.tool, event.props.input)}</Text>
+            </Box>
+            <Text color={color}>{statusLabel(state)}</Text>
+            <Text dimColor>{toolLabel(event.props.tool)}</Text>
+            {duration && <Text dimColor>{duration}</Text>}
+            {summary && <Text dimColor wrap="truncate-middle">{summary}</Text>}
+            {detail && (
+              <Box flexShrink={0}>
+                <Button
+                  key={`tool-card-details:${event.props.tool_use_id}`}
+                  label={expanded ? 'Hide details' : 'Details'}
+                  variant="secondary"
+                  onPress={toggleDetails}
+                />
+              </Box>
+            )}
+          </Box>
+          {detail && expanded && (
+            <Code source={detail.source} format={detail.format} path={detail.path} wrap="truncate-end" />
+          )}
+        </Box>
+      )
+    }
+
     if (event.surface === 'terminal') {
       return (
         <Box flexDirection="column" overflow="hidden">

@@ -4,6 +4,7 @@ Next Steps suggests two or three likely next prompts after each turn and shows t
 
 - On the desktop each suggestion is a button. Click one to put it in the prompt box, where you can edit it before sending. The ✕ at the end clears them.
 - In the terminal they show as a numbered line. Press 1, 2 or 3 in an empty prompt to draft one, or 0 to dismiss.
+- In VS Code each numbered suggestion has its own row. Click to draft it, or use Dismiss to clear the list.
 - Nothing is ever sent on its own.
 
 Next Steps is a fork of [next-steps](https://github.com/hamzafer/claude-code-mods/tree/main/mods/next-steps) by [Hamza Zafar](https://github.com/hamzafer), used under the MIT license. The suggestion logic, terminal layout and band ordering are his. This version adds the desktop buttons.

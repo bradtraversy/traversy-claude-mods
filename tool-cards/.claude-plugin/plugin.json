@@ -1,6 +1,6 @@
 {
   "name": "tool-cards",
-  "version": "0.2.6",
+  "version": "0.2.10",
   "description": "Replaces tool-use rows with diagnostic cards that show status, timing, results, and details",
   "author": { "name": "Brad Traversy" }
 }
