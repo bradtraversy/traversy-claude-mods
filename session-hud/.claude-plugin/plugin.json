@@ -1,6 +1,6 @@
 {
   "name": "session-hud",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Shows branch safety, context headroom, and account usage in a compact session telemetry strip",
   "author": { "name": "Brad Traversy" },
   "userConfig": {

@@ -195,6 +195,17 @@ test('shows usage against the configured context maximum on terminal and desktop
     })
 
     expect(await pane.find({ type: 'Text', text: 'Session Details' })).toBeDefined()
+    const glyphBars = await pane.findAll({ type: 'Text', text: /[█░]/ })
+    const boxBars = (await pane.findAll({ type: 'Box' })).filter(box => box.props.backgroundColor === 'subtle')
+    if (surface === 'terminal') {
+      expect(glyphBars.length).toBeGreaterThan(0)
+      expect(boxBars).toHaveLength(0)
+    } else {
+      // Glyph bars wrap on graphical surfaces, so the Details bars are boxes that fill the card.
+      expect(glyphBars).toHaveLength(0)
+      expect(boxBars.length).toBeGreaterThan(0)
+      expect(boxBars[0]?.props.width).toBe('100%')
+    }
     expect(await pane.find({ type: 'Text', text: '52k used' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: '248k until target' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: 'Context makeup' })).toBeDefined()
