@@ -499,6 +499,15 @@ export const register: Register = (on, options) => {
       width: number,
       color: 'success' | 'warning' | 'error' = 'success',
     ) => {
+      if (!isTerminal) {
+        // Graphical surfaces draw block glyphs wider than a cell, so a glyph bar wraps there.
+        const filled = Number.isFinite(percent) ? Math.round(Math.min(Math.max(percent, 0), 100)) : 0
+        return (
+          <Box width="100%" height={1} backgroundColor="subtle" overflow="hidden">
+            {filled > 0 && <Box width={`${Math.max(filled, 1)}%`} height={1} backgroundColor={color} />}
+          </Box>
+        )
+      }
       const progress = meter(percent, width)
       return (
         <Box>
