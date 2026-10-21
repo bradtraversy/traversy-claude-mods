@@ -230,7 +230,7 @@ async function refreshBranch($: EngineInterface, cwd?: string): Promise<void> {
     })
 
     if (current.exitCode !== 0) {
-      updateBranch($, { kind: 'none', label: 'Not a Git repository' })
+      updateBranch($, { kind: 'none', label: 'none' })
       return
     }
 
@@ -251,7 +251,7 @@ async function refreshBranch($: EngineInterface, cwd?: string): Promise<void> {
 
     updateBranch($, commit.exitCode === 0 && shortCommit
       ? { kind: 'detached', label: `detached@${shortCommit}` }
-      : { kind: 'none', label: 'Not a Git repository' })
+      : { kind: 'none', label: 'none' })
   } catch {
     updateBranch($, { kind: 'error', label: 'Branch unavailable' })
   } finally {

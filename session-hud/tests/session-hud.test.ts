@@ -173,7 +173,7 @@ test('shows usage against the configured context maximum on terminal and desktop
     isGitRepository = false
     await $.tool.call({ tool: 'Bash', command: 'cd /tmp' })
     await ui.redraw(PROPS)
-    const noBranch = await ui.find({ type: 'Text', text: 'Not a Git repository' })
+    const noBranch = await ui.find({ type: 'Text', text: 'none' })
     if (!noBranch) throw new Error('The non-Git state was not rendered')
     expect(noBranch.props.color).toBe('inactive')
 
