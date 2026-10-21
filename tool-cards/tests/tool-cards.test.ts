@@ -11,8 +11,8 @@ const PROPS: RenderPropsOf['ToolUse'] = {
   output: { text: 'contents' },
 }
 
-test('renders a completed tool card on terminal and desktop', async $ => {
-  for (const surface of ['terminal', 'desktop'] as const) {
+test('renders a completed tool card on terminal, desktop and VS Code', async $ => {
+  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
     const ui = await $.ui.mount({
       plugin: 'tool-cards',
       surface,
@@ -47,7 +47,8 @@ test('renders a completed tool card on terminal and desktop', async $ => {
       })
       if (drawn.type !== 'Box') throw new Error('Expected a compact terminal Box')
       expect(drawn.props?.borderStyle).toBeUndefined()
-      expect(drawn.props?.paddingY).toBeUndefined()
+      if (surface === 'vscode') expect(drawn.props?.paddingY).toBe(0.25)
+      else expect(drawn.props?.paddingY).toBeUndefined()
       expect(drawn.props?.marginY).toBeUndefined()
     }
     await ui.unmount()
@@ -92,7 +93,7 @@ test('uses distinct icons and color tiles for tool families', async $ => {
 })
 
 test('constrains long targets inside the card', async $ => {
-  for (const surface of ['terminal', 'desktop'] as const) {
+  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
     const ui = await $.ui.mount({
       plugin: 'tool-cards',
       surface,
@@ -120,7 +121,7 @@ test('constrains long targets inside the card', async $ => {
       },
     })
     const boxes = await ui.findAll({ type: 'Box' })
-    expect(boxes.some(box => box.props.flexWrap === 'wrap')).toBe(true)
+    expect(boxes.some(box => box.props.flexWrap === 'wrap')).toBe(surface !== 'vscode')
     expect(boxes.some(box => box.props.width === '100%')).toBe(false)
     await ui.unmount()
   }
@@ -166,7 +167,7 @@ test('uses distinct colors for every tool state', async $ => {
     { label: 'Stopped', color: 'inactive', isRunning: false, isErrored: false, isInterrupted: true },
   ] as const
 
-  for (const surface of ['terminal', 'desktop'] as const) {
+  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
     for (const state of states) {
       const ui = await $.ui.mount({
         plugin: 'tool-cards',
@@ -200,7 +201,7 @@ test('shows useful result summaries and expandable details', async $ => {
     '+export const shipped = true',
   ].join('\n')
 
-  for (const surface of ['terminal', 'desktop'] as const) {
+  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
     const editId = `tool-edit-${surface}`
     const edit = await $.ui.mount({
       plugin: 'tool-cards',
@@ -241,7 +242,7 @@ test('shows useful result summaries and expandable details', async $ => {
     })
     const header = (await edit.findAll({ type: 'Box' }))
       .find(box => box.props.justifyContent === 'space-between')
-    expect(header?.props.width).toBeUndefined()
+    if (surface !== 'vscode') expect(header?.props.width).toBeUndefined()
     expect(await edit.find({ type: 'Code' })).toBeUndefined()
 
     await edit.press({ key: `tool-card-details:${editId}` })
@@ -374,5 +375,27 @@ test('tracks elapsed time while a tool is running', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: '2s' })).toBeDefined()
   releaseTool()
   await pendingTool
+  await ui.unmount()
+})
+
+
+test('uses one padded full-width header row in VS Code', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'tool-cards', surface: 'vscode', component: 'ToolUse',
+    requestId: 'compact-vscode', props: { ...PROPS, tool_use_id: 'compact-vscode' },
+  })
+  const drawn = await ui.drawn()
+  expect(drawn).toMatchObject({ type: 'Box', props: { flexDirection: 'column', minWidth: 0, paddingX: 0.5, paddingY: 0.25 } })
+  if (drawn.type !== 'Box') throw new Error('Expected a Box')
+  expect(drawn.children).toHaveLength(1)
+  expect(drawn.props?.width).toBeUndefined()
+  for (const box of await ui.findAll({ type: 'Box' })) {
+    expect(box.props.marginY).toBeUndefined()
+    expect(box.props.borderStyle).toBeUndefined()
+    expect(box.props.backgroundColor).toBeUndefined()
+  }
+  expect(await ui.find({ type: 'Text', text: 'Completed' })).toBeDefined()
+  await ui.press({ key: 'tool-card-details:compact-vscode' })
+  expect(await ui.find({ type: 'Code' })).toBeDefined()
   await ui.unmount()
 })

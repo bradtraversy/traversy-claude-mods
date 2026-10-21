@@ -75,6 +75,26 @@ export const register: Register = (on, options) => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const order = await (bandOrder ??= readBandOrder($).catch(() => []))
 
+    if (e.surface === 'vscode') {
+      const suggestions = (
+        <Box flexDirection="column" gap={1} alignItems="flex-start" paddingBottom={1}>
+          {s.items.map((text, i) => (
+            <Button
+              key={`next-step-${i + 1}`}
+              label={`${i + 1}. ${text}`}
+              variant="secondary"
+              onPress={async () => {
+                await $.prompt.fill({ text })
+                await setSteps($, () => null)
+              }}
+            />
+          ))}
+          <Button key="next-steps-dismiss" label="Dismiss" dimColor onPress={() => setSteps($, () => null)} />
+        </Box>
+      )
+      return stackBands(rest, 'next-steps', suggestions, 'above', order)
+    }
+
     if (e.surface !== 'terminal') {
       const chips = (
         <Box flexDirection="row" flexWrap="wrap" gap={1} alignItems="center" paddingBottom={1}>

@@ -1,8 +1,15 @@
 import { describe, expect, test } from 'claude-code/testing'
+import type { RenderPropsOf } from 'claude-code'
 
 import { displayWidth, fitsOnOneLine, parseSteps, resetBandOrder } from '../hooks/register'
 
-const BAND = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160 } }
+const BAND = {
+  component: 'AbovePrompt' as const,
+  props: {
+    hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160,
+    scroll: { offset: 0, bodyRows: 10 }, view: {},
+  } satisfies RenderPropsOf['AbovePrompt'],
+}
 const ANSWER = 'I wrote tests for the login form and they pass locally.'
 const REPLY = 'Run the tests you just wrote\nDo the same for settings\nOpen a draft PR'
 
@@ -297,6 +304,50 @@ describe('next-steps on the desktop', () => {
     expect(filled).toEqual([])
     await ui.redraw(BAND.props)
     expect(await ui.find({ type: 'Text', text: /Run the tests/ })).toBeUndefined()
+    await ui.unmount()
+  })
+})
+
+
+describe('next-steps in VS Code', () => {
+  test('stacks numbered buttons and drafts the original suggestion', async ($, on) => {
+    engine(on, () => REPLY)
+    const filled: string[] = []
+    on('prompt.fill', (_$: any, e: any) => {
+      filled.push(e.text)
+      return { isFilled: true }
+    })
+    await finishTurn($)
+    const ui = await $.ui.mount({ plugin: 'next-steps', surface: 'vscode', ...BAND,
+      props: { ...BAND.props, bodyColumns: 48 } })
+
+    const boxes = await ui.findAll({ type: 'Box' })
+    expect(boxes.some(box => box.props.flexDirection === 'column'
+      && box.props.alignItems === 'flex-start')).toBe(true)
+    expect((await ui.find({ type: 'Button', key: 'next-step-1' }))?.props.label)
+      .toBe('1. Run the tests you just wrote')
+    expect(await ui.find({ type: 'Text', text: '1' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: 'band below' })).toBeDefined()
+    await ui.press({ key: 'next-step-2' })
+    expect(filled).toEqual(['Do the same for settings'])
+    await ui.redraw(BAND.props)
+    expect(await ui.find({ type: 'Button', key: 'next-step-1' })).toBeUndefined()
+    await ui.unmount()
+  })
+
+  test('dismisses without filling the prompt', async ($, on) => {
+    engine(on, () => REPLY)
+    const filled: string[] = []
+    on('prompt.fill', (_$: any, e: any) => {
+      filled.push(e.text)
+      return { isFilled: true }
+    })
+    await finishTurn($)
+    const ui = await $.ui.mount({ plugin: 'next-steps', surface: 'vscode', ...BAND })
+    await ui.press({ key: 'next-steps-dismiss' })
+    expect(filled).toEqual([])
+    await ui.redraw(BAND.props)
+    expect(await ui.find({ type: 'Button', key: 'next-step-1' })).toBeUndefined()
     await ui.unmount()
   })
 })

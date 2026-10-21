@@ -2,7 +2,7 @@
 
 Tool Cards replaces Claude Code's standard tool-use row with a clean, spacious card that makes the action, current state, tool, timing, and result easy to scan. Each card uses a tool-specific icon, a human-readable action title, muted metadata, and a right-aligned Details control when output is available. Tool output stays collapsed by default, including structured results from MCP tools.
 
-Desktop uses the full padded card treatment. The terminal uses a compact two-line row with no icon tile, outer margin, or vertical card padding so repeated tool calls do not take over the transcript.
+VS Code uses one full-width header row with light padding and no icon tile. Output opens beneath it. The extension adds its own plugin attribution and outer frame; the mod does not control them. Desktop uses the full padded card treatment. The terminal uses a compact two-line row with no icon tile, outer margin, or vertical card padding so repeated tool calls do not take over the transcript.
 
 ![Tool Cards showing a completed Bash command](../docs/images/tool-cards.png)
 
