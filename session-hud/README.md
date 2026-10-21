@@ -22,7 +22,7 @@ Restart the session or enter `/reload-plugins` after installation. Run `/plugin`
 
 ## How it works
 
-The branch signal and name appear first. Working branches use green. `main` and `master` use yellow as a reminder that you are on the default branch. Detached HEAD states are also yellow, and folders outside a Git repository say so directly. Session HUD checks every five seconds, so it also catches branch changes made in the built-in terminal or another terminal. Branches changed by a Claude Bash tool refresh immediately.
+The branch signal and name appear first. Working branches use green. `main` and `master` use yellow as a reminder that you are on the default branch. Detached HEAD states are also yellow, and folders outside a Git repository display `none`. Session HUD checks every five seconds, so it also catches branch changes made in the built-in terminal or another terminal. Branches changed by a Claude Bash tool refresh immediately.
 
 The context meter carries the strongest visual weight, followed by the compact `Week` label for overall seven-day account usage. Select `Details` to open Session Details. Its context-budget summary shows how much context is used, the percentage of the personal target, and how much headroom remains. The pane also shows:
 
