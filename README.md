@@ -9,6 +9,8 @@ claude plugin install tool-cards@traversy-mods
 claude plugin install next-steps@traversy-mods
 ```
 
+These go with the following [YouTube Video](https://youtu.be/uizaxuzgEAk)
+
 > [!IMPORTANT]
 > Mods run inside Claude Code with your user permissions. They can see session events, start processes, access files, and make network requests. Read the source before installing any mod, including these.
 
