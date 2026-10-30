@@ -1,5 +1,7 @@
 # Session HUD
 
+[![Listed on statuslin.es](https://img.shields.io/badge/listed%20on-statuslin.es-c96442)](https://statuslin.es/mods/session-hud)
+
 Session HUD draws a compact telemetry strip above the prompt with the current Git branch, context usage, a visual progress bar, and overall weekly account usage.
 
 ![Session HUD telemetry strip showing branch and context usage](../docs/images/session-hud.png)
