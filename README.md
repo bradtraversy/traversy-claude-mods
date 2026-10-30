@@ -53,7 +53,7 @@ claude plugin install next-steps@traversy-mods
 
 ### [Source Control](./source-control/README.md)
 
-A pane beside the chat modeled on VS Code's Source Control view. It lists staged and unstaged changes with the same file icons VS Code shows, stages, unstages, discards and commits, and draws the commit graph with your branch and its upstream labeled. Click a commit to see its files, and click a file to open it in VS Code.
+A pane beside the chat modeled on VS Code's Source Control view. It lists staged and unstaged changes with the same file icons VS Code shows, stages, unstages, discards and commits, and draws the commit graph with your branch and its upstream labeled. Click a file to see its diff in a pane of its own, or in VS Code if you prefer, and click a commit to see its files and what it changed in each.
 
 <img src="./docs/images/source-control.png" alt="Source Control pane with changed files, file icons, and the commit graph with an expanded commit" width="360">
 

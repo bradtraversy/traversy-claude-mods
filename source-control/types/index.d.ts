@@ -52,6 +52,25 @@ export type Confirm =
   | { kind: 'discard-all' }
   | { kind: 'commit-all' }
 
+/** What the diff pane compares: a change in the repo, or a file one commit changed. */
+export type DiffTarget =
+  | { kind: 'change'; root: string; change: Change }
+  | { kind: 'commit'; root: string; commit: Pick<Commit, 'hash' | 'parents'>; file: CommitFile }
+
+/** The diff pane's file; with no `source`, `size` or `note` yet, git is still reading it. */
+export type Diff = {
+  title: string
+  /** Repo-relative, for the highlighter's language. */
+  path: string
+  target: DiffTarget
+  /** The diff from its first hunk, or git's whole output when it has none. */
+  source?: string
+  /** The diff's length in characters, when it is too large to draw. */
+  size?: number
+  /** Why there is nothing to draw: no changes, or git failed. */
+  note?: string
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'source-control': {
@@ -64,6 +83,7 @@ declare module 'claude-code' {
       limit: number
       expanded: string[]
       files: Shaped<Record<string, CommitFile[]>>
+      diff: Shaped<Diff | null>
     }
   }
 }

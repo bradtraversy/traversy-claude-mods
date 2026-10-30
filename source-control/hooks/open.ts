@@ -4,11 +4,19 @@ export const LINUX_LAUNCH = 'setsid -f -w "$@" </dev/null >/dev/null 2>&1 & p=$!
 
 // `code` is a snap, and a snap refuses to start under no_new_privs, which the desktop app can
 // be left running with after an update. systemd-run starts it from the user's service manager.
-export const OPEN_WITH = ['systemd-run', '--user', '--collect', '--quiet', '--same-dir', 'code', '-g']
+export const OPEN_WITH = ['systemd-run', '--user', '--collect', '--quiet', '--same-dir', 'code']
 
-export function openCommand(path: string, root: string) {
+function codeCommand(args: string[], root: string) {
   return {
-    argv: ['sh', '-c', LINUX_LAUNCH, 'sh', ...OPEN_WITH, path],
+    argv: ['sh', '-c', LINUX_LAUNCH, 'sh', ...OPEN_WITH, ...args],
     init: { cwd: root, timeoutMs: 10_000 },
   }
+}
+
+export function openCommand(path: string, root: string) {
+  return codeCommand(['-g', path], root)
+}
+
+export function diffCommand(left: string, right: string, root: string) {
+  return codeCommand(['-d', left, right], root)
 }
