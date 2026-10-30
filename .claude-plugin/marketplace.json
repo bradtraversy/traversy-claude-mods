@@ -19,6 +19,11 @@
       "name": "next-steps",
       "source": "./next-steps",
       "description": "Suggests 2 or 3 likely next prompts after each turn, as buttons on the desktop and numbered picks in the terminal"
+    },
+    {
+      "name": "source-control",
+      "source": "./source-control",
+      "description": "A Source Control pane beside the chat, modeled on VS Code: changes, stage, discard, commit, and the commit graph"
     }
   ]
 }

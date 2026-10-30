@@ -1,0 +1,7 @@
+{
+  "name": "source-control",
+  "version": "0.1.0",
+  "description": "A Source Control pane beside the chat, modeled on VS Code: changes, stage, discard, commit, and the commit graph",
+  "author": { "name": "Brad Traversy" },
+  "types": "./types/index.d.ts"
+}

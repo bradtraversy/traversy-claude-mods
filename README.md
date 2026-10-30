@@ -1,12 +1,13 @@
 # Traversy Claude Mods
 
-Three small Claude Code mods for long sessions: a telemetry strip above the prompt, cleaner tool-use cards in the transcript, and suggested next prompts after each turn. All three work in the terminal and in the Code tab of Claude Desktop.
+Four small Claude Code mods for long sessions: a telemetry strip above the prompt, cleaner tool-use cards in the transcript, suggested next prompts after each turn, and a VS Code style Source Control pane beside the chat. All four work in the terminal and in the Code tab of Claude Desktop.
 
 ```bash
 claude plugin marketplace add bradtraversy/traversy-claude-mods
 claude plugin install session-hud@traversy-mods
 claude plugin install tool-cards@traversy-mods
 claude plugin install next-steps@traversy-mods
+claude plugin install source-control@traversy-mods
 ```
 
 These go with the following [YouTube Video](https://youtu.be/uizaxuzgEAk)
@@ -49,6 +50,18 @@ claude plugin install next-steps@traversy-mods
 ```
 
 [Read the Next Steps guide](./next-steps/README.md)
+
+### [Source Control](./source-control/README.md)
+
+A pane beside the chat modeled on VS Code's Source Control view. It lists staged and unstaged changes with the same file icons VS Code shows, stages, unstages, discards and commits, and draws the commit graph with your branch and its upstream labeled. Click a commit to see its files, and click a file to open it in VS Code.
+
+![Source Control pane beside the chat in Claude Desktop](./docs/images/source-control-app.png)
+
+```bash
+claude plugin install source-control@traversy-mods
+```
+
+[Read the Source Control guide](./source-control/README.md)
 
 The images show the mods in Claude Desktop. Exact spacing and colors can vary by platform and Claude version.
 
@@ -108,6 +121,7 @@ You can also enter this in a Claude Code session:
 claude plugin install session-hud@traversy-mods
 claude plugin install tool-cards@traversy-mods
 claude plugin install next-steps@traversy-mods
+claude plugin install source-control@traversy-mods
 ```
 
 Inside an interactive session, the same commands start with `/plugin install` instead of `claude plugin install`.
@@ -137,7 +151,7 @@ You can also use the desktop plugin manager. Click the plus button beside the pr
 
 ## How the mods work together
 
-Tool Cards owns tool-use rows in the transcript. Session HUD and Next Steps share the band above the prompt: each passes on what the other draws, so the suggestions sit above the telemetry strip.
+Tool Cards owns tool-use rows in the transcript. Session HUD and Next Steps share the band above the prompt: each passes on what the other draws, so the suggestions sit above the telemetry strip. Source Control draws in its own pane beside the chat and does not touch the transcript or the band.
 
 ## Develop locally from scratch
 
@@ -157,6 +171,7 @@ claude plugin validate .
 claude plugin validate ./session-hud
 claude plugin validate ./tool-cards
 claude plugin validate ./next-steps
+claude plugin validate ./source-control
 ```
 
 Validation reads the mod without executing it. Review the reported `hooks:` and `calls:` lines to see what it handles and which Claude Code APIs it uses.
@@ -167,6 +182,7 @@ Validation reads the mod without executing it. Review the reported `hooks:` and 
 claude plugin test ./session-hud
 claude plugin test ./tool-cards
 claude plugin test ./next-steps
+claude plugin test ./source-control
 ```
 
 The interface tests mount each mod on simulated terminal and desktop surfaces.
@@ -305,7 +321,7 @@ claude plugin validate ./path-to-mod
 
 Read the reported handlers and API calls, then inspect the source. A mod can potentially read files and environment variables, start processes, make network requests, observe prompts and tool calls, alter session behavior, and spend model usage.
 
-The mods are intentionally small enough to inspect directly. Next Steps sends your last few messages to Haiku after each turn.
+The mods are intentionally small enough to inspect directly. Next Steps sends your last few messages to Haiku after each turn. Source Control runs Git in the session's repository, reads the vscode-icons theme from `~/.vscode/extensions`, and starts VS Code when you click a file.
 
 ## Documentation
 
