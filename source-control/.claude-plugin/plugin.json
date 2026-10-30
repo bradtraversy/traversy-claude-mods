@@ -1,7 +1,16 @@
 {
   "name": "source-control",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Source Control pane beside the chat, modeled on VS Code: changes, stage, discard, commit, and the commit graph",
   "author": { "name": "Brad Traversy" },
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "diff_view": {
+      "type": "string",
+      "title": "Show diffs in",
+      "description": "Where clicking a changed file shows its diff: pane draws it beside Source Control, vscode opens VS Code's diff editor (Linux only)",
+      "default": "pane",
+      "options": ["pane", "vscode"]
+    }
+  }
 }

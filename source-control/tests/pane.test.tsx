@@ -25,47 +25,71 @@ const LOG = [
   '* \x01c1\x02\x02Brad Traversy\x02yesterday\x02refs/remotes/origin/main, refs/heads/old\x02feat: first',
 ].join('\n')
 const TREE = ['M', 'src/changed.ts', 'R100', 'old/gone.ts', 'src/moved.ts', 'D', 'removed.md'].join('\0') + '\0'
+const HUNK = ['@@ -1 +1 @@', '-old', '+new'].join('\n')
+const DIFF = ['diff --git a/x b/x', 'index 1..2 100644', '--- a/x', '+++ b/x', HUNK, ''].join('\n')
 
 type Call = { argv: string[]; stdin?: string; cwd?: string }
 
+/** A repo whose `status` and `diff` a test may change before the pane reads them again. */
 function fakeRepo(on: On, openExit = 0, missing: string[] = []) {
   const calls: Call[] = []
   const toasts: string[] = []
+  const opens: { id: string; title?: string; focus?: true }[] = []
+  const writes: { path: string; text: string }[] = []
+  const repo = { calls, toasts, opens, writes, status: STATUS, diff: DIFF, isShown: true, openDeny: '', gits: () => calls.filter(c => c.argv[0] === 'git').map(c => c.argv.slice(4)) }
   on('session.cwd', () => ({ value: '/repo' }))
   on('fs.stat', (_, e) => (missing.includes(e.path) ? { deny: 'ENOENT' } : { value: { kind: 'file', size: 1, mtimeMs: 0, isLink: false } }))
+  on('fs.write', (_, e) => {
+    writes.push({ path: e.path, text: e.text })
+    return { value: undefined }
+  })
   on('ui.toast', (_, e) => {
     toasts.push(e.text)
     return { value: undefined }
   })
+  on('ui.open', (_, e) => {
+    if (repo.openDeny) return { deny: repo.openDeny }
+    opens.push({ id: e.id, ...(e.title === undefined ? {} : { title: e.title }), ...(e.focus ? { focus: e.focus } : {}) })
+    return { value: { isPlaced: true } }
+  })
+  on('ui.panes', () => ({
+    value: opens.map(open => ({ id: open.id, title: open.title ?? open.id, isShown: repo.isShown, isFocused: repo.isShown, isPlaced: true })),
+  }))
   on('process.run', (_, e) => {
     const argv = [...e.argv]
     calls.push({ argv, ...(e.init?.stdin === undefined ? {} : { stdin: e.init.stdin }), ...(e.init?.cwd === undefined ? {} : { cwd: e.init.cwd }) })
     const done = (exitCode: number, stdout = '') => ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     if (argv[0] === 'sh') return done(openExit)
     if (argv.includes('rev-parse')) return done(0, '/repo\n')
-    if (argv.includes('status')) return done(0, STATUS)
+    if (argv.includes('cat-file')) return done(0, `blob ${argv.at(-1)}\n`)
+    if (argv.includes('diff') || argv.includes('-p')) return done(argv.includes('--no-index') ? 1 : 0, repo.diff)
+    if (argv.includes('status')) return done(0, repo.status)
     if (argv.includes('log')) return done(0, LOG)
     if (argv.includes('diff-tree')) return done(0, TREE)
     return done(0)
   })
-  const gits = () => calls.filter(c => c.argv[0] === 'git').map(c => c.argv.slice(4))
-  return { calls, toasts, gits }
+  return repo
 }
 
+const DIFF_PANE = { ...PANE, requestId: 'source-control-diff', props: { ...PANE.props, title: 'Diff' } } as const
+const CODE_WITH = ['systemd-run', '--user', '--collect', '--quiet', '--same-dir', 'code']
+const noRemote = (gits: string[][]) => !gits.some(a => a[0] === 'push' || a[0] === 'pull' || a[0] === 'fetch')
+
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`clicking a changed file opens it in VS Code, on ${surface}`, async ($, on) => {
+  test(`a changed file's open icon opens it in VS Code, on ${surface}`, async ($, on) => {
     const repo = fakeRepo(on)
     const ui = await $.ui.mount({ ...PANE, surface })
     await ui.press({ key: 'retry' })
 
     expect(await ui.find({ type: 'Text', text: /Staged Changes/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /feat: second/ })).toBeDefined()
-    await ui.press({ key: 'open:changes:src/changed.ts' })
+    await ui.press({ key: 'openfile:changes:src/changed.ts' })
 
     const open = repo.calls.find(c => c.argv[0] === 'sh')
     expect(open?.argv).toEqual(['sh', '-c', LINUX_LAUNCH, 'sh', 'systemd-run', '--user', '--collect', '--quiet', '--same-dir', 'code', '-g', '/repo/src/changed.ts'])
     expect(open?.cwd).toBe('/repo')
     expect(repo.toasts).toEqual([])
+    expect(repo.opens).toEqual([])
     await ui.unmount()
   })
 
@@ -112,7 +136,7 @@ test('a failed open says why in a toast', async ($, on) => {
   const repo = fakeRepo(on, 1)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.press({ key: 'retry' })
-  await ui.press({ key: 'open:staged:src/staged.ts' })
+  await ui.press({ key: 'openfile:staged:src/staged.ts' })
   expect(repo.toasts).toEqual(['Could not open staged.ts in VS Code: systemd-run exited 1'])
   await ui.unmount()
 })
@@ -149,7 +173,7 @@ test('an Edit, a Write or a git command reads the repo again', async ($, on) => 
 })
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`clicking a commit lists its files, and a file opens in VS Code, on ${surface}`, async ($, on) => {
+  test(`clicking a commit lists its files, and a file's open icon opens it in VS Code, on ${surface}`, async ($, on) => {
     const repo = fakeRepo(on, 0, ['/repo/src/moved.ts'])
     const ui = await $.ui.mount({ ...PANE, surface })
     await ui.press({ key: 'retry' })
@@ -160,10 +184,10 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect(await ui.find({ key: 'copen:c2:src/changed.ts' })).toBeDefined()
     expect(await ui.find({ key: 'copen:c2:removed.md' })).toBeDefined()
 
-    await ui.press({ key: 'copen:c2:src/changed.ts' })
+    await ui.press({ key: 'copenfile:c2:src/changed.ts' })
     expect(repo.calls.find(c => c.argv[0] === 'sh')?.argv.at(-1)).toBe('/repo/src/changed.ts')
 
-    await ui.press({ key: 'copen:c2:src/moved.ts' })
+    await ui.press({ key: 'copenfile:c2:src/moved.ts' })
     expect(repo.toasts).toEqual(['moved.ts is not in the working tree anymore.'])
 
     await ui.press({ key: 'commit:c2' })
@@ -173,6 +197,144 @@ for (const surface of ['terminal', 'desktop'] as const) {
     await ui.unmount()
   })
 }
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`clicking a changed file shows its diff in a pane beside Source Control, on ${surface}`, { options: { diff_view: 'pane' } }, async ($, on) => {
+    const repo = fakeRepo(on)
+    const ui = await $.ui.mount({ ...PANE, surface })
+    await ui.press({ key: 'retry' })
+    await ui.press({ key: 'open:changes:src/changed.ts' })
+
+    expect(repo.opens).toEqual([{ id: 'source-control-diff', title: 'changed.ts (Working Tree)', focus: true }])
+    expect(repo.gits()).toContainEqual(['diff', '--no-color', '--no-ext-diff', '--', 'src/changed.ts'])
+    const pane = await $.ui.mount({ ...DIFF_PANE, surface })
+    const code = await pane.find({ type: 'Code' })
+    expect(code?.props).toEqual({ source: HUNK, format: 'diff', path: 'src/changed.ts' })
+    expect(repo.calls.some(c => c.argv[0] === 'sh')).toBe(false)
+    expect(noRemote(repo.gits())).toBe(true)
+    await pane.unmount()
+    await ui.unmount()
+  })
+
+  test(`each change and commit file diffs against what VS Code compares it with, on ${surface}`, async ($, on) => {
+    const repo = fakeRepo(on)
+    repo.status = STATUS + 'UU both.ts\0'
+    const ui = await $.ui.mount({ ...PANE, surface })
+    await ui.press({ key: 'retry' })
+    const pane = await $.ui.mount({ ...DIFF_PANE, surface })
+    const shows = async (key: string, title: string, args: string[]) => {
+      await ui.press({ key })
+      expect(repo.opens.at(-1)).toEqual({ id: 'source-control-diff', title, focus: true })
+      expect(repo.gits().at(-1)).toEqual(args)
+      expect((await pane.find({ type: 'Code' }))?.props.source).toBe(HUNK)
+    }
+    const DIFF_ARGS = ['--no-color', '--no-ext-diff']
+
+    await shows('open:staged:src/staged.ts', 'staged.ts (Index)', ['diff', ...DIFF_ARGS, '--cached', '-M', '--', 'src/staged.ts'])
+    // An untracked file's --no-index diff exits 1, which is not a failure.
+    await shows('open:changes:notes.txt', 'notes.txt (Working Tree)', ['diff', ...DIFF_ARGS, '--no-index', '--', '/dev/null', 'notes.txt'])
+    await shows('open:merge:both.ts', 'both.ts (Working Tree)', ['diff', ...DIFF_ARGS, '--', 'both.ts'])
+
+    await ui.press({ key: 'commit:c2' })
+    await shows('copen:c2:src/changed.ts', 'changed.ts (c2)', ['diff-tree', '-p', '-M', ...DIFF_ARGS, '--no-commit-id', 'c1', 'c2', '--', 'src/changed.ts'])
+    await shows('copen:c2:src/moved.ts', 'moved.ts (c2)', ['diff-tree', '-p', '-M', ...DIFF_ARGS, '--no-commit-id', 'c1', 'c2', '--', 'old/gone.ts', 'src/moved.ts'])
+    await ui.press({ key: 'commit:c1' })
+    await shows('copen:c1:removed.md', 'removed.md (c1)', ['diff-tree', '-p', '-M', ...DIFF_ARGS, '--no-commit-id', '--root', 'c1', '--', 'removed.md'])
+
+    expect(repo.toasts).toEqual([])
+    expect(noRemote(repo.gits())).toBe(true)
+    await pane.unmount()
+    await ui.unmount()
+  })
+
+  test(`a diff too large to draw offers VS Code instead, on ${surface}`, async ($, on) => {
+    const repo = fakeRepo(on)
+    repo.diff = `@@ -0,0 +1 @@\n+${'x'.repeat(120_000)}\n`
+    const ui = await $.ui.mount({ ...PANE, surface })
+    await ui.press({ key: 'retry' })
+    await ui.press({ key: 'open:changes:src/changed.ts' })
+
+    const pane = await $.ui.mount({ ...DIFF_PANE, surface })
+    expect(await pane.find({ type: 'Code' })).toBeUndefined()
+    expect(await pane.find({ type: 'Text', text: 'This diff is too large to show here (120k characters).' })).toBeDefined()
+    await pane.press({ key: 'diff-in-code' })
+    expect(repo.calls.find(c => c.argv[0] === 'sh')?.argv.slice(4)).toEqual([...CODE_WITH, '-d', '/tmp/source-control-diff/repo/index/src/changed.ts', '/repo/src/changed.ts'])
+    await pane.unmount()
+    await ui.unmount()
+  })
+
+  test(`with diffs set to vscode, a click opens VS Code's diff editor and no pane, on ${surface}`, { options: { diff_view: 'vscode' } }, async ($, on) => {
+    const repo = fakeRepo(on)
+    mock.env(on, { XDG_RUNTIME_DIR: '/run/user/1000' })
+    const tmp = '/run/user/1000/source-control-diff/repo'
+    const ui = await $.ui.mount({ ...PANE, surface })
+    await ui.press({ key: 'retry' })
+    const launched = () => repo.calls.filter(c => c.argv[0] === 'sh').at(-1)?.argv.slice(4)
+
+    await ui.press({ key: 'open:changes:src/changed.ts' })
+    expect(repo.gits().at(-1)).toEqual(['cat-file', 'blob', ':src/changed.ts'])
+    expect(repo.writes).toEqual([{ path: `${tmp}/index/src/changed.ts`, text: 'blob :src/changed.ts\n' }])
+    expect(launched()).toEqual([...CODE_WITH, '-d', `${tmp}/index/src/changed.ts`, '/repo/src/changed.ts'])
+
+    await ui.press({ key: 'open:staged:src/staged.ts' })
+    expect(launched()).toEqual([...CODE_WITH, '-d', `${tmp}/HEAD/src/staged.ts`, `${tmp}/index/src/staged.ts`])
+    expect(repo.writes.at(-2)).toEqual({ path: `${tmp}/HEAD/src/staged.ts`, text: 'blob HEAD:src/staged.ts\n' })
+
+    await ui.press({ key: 'open:changes:notes.txt' })
+    expect(launched()).toEqual([...CODE_WITH, '-g', '/repo/notes.txt'])
+
+    await ui.press({ key: 'commit:c2' })
+    await ui.press({ key: 'copen:c2:removed.md' })
+    expect(launched()).toEqual([...CODE_WITH, '-d', `${tmp}/c1/removed.md`, `${tmp}/empty/removed.md`])
+    expect(repo.writes.at(-1)).toEqual({ path: `${tmp}/empty/removed.md`, text: '' })
+
+    expect(repo.opens).toEqual([])
+    expect(repo.gits().some(a => a[0] === 'diff' || a.includes('-p'))).toBe(false)
+    expect(repo.toasts).toEqual([])
+    expect(noRemote(repo.gits())).toBe(true)
+    await ui.unmount()
+  })
+}
+
+test('a diff the surface leaves behind Source Control says where it is', async ($, on) => {
+  const repo = fakeRepo(on)
+  repo.isShown = false
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'retry' })
+  await ui.press({ key: 'open:staged:src/staged.ts' })
+  expect(repo.toasts).toEqual(['staged.ts (Index) is open in its own tab, behind Source Control.'])
+  await ui.unmount()
+})
+
+test('a diff pane that cannot open says why instead of doing nothing', async ($, on) => {
+  const repo = fakeRepo(on)
+  repo.openDeny = 'no room'
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'retry' })
+  await ui.press({ key: 'open:changes:src/changed.ts' })
+  expect(repo.toasts).toHaveLength(1)
+  expect(repo.toasts[0]).toMatch(/^Could not show the diff of changed\.ts: .*no room/)
+  await ui.unmount()
+})
+
+test('an open diff follows the repo, and says when there is nothing left to show', async ($, on) => {
+  const repo = fakeRepo(on)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'retry' })
+  await ui.press({ key: 'open:changes:src/changed.ts' })
+  const pane = await $.ui.mount({ ...DIFF_PANE, surface: 'desktop' })
+
+  repo.diff = ['@@ -1 +1,2 @@', '-old', '+new', '+more', ''].join('\n')
+  await ui.press({ key: 'refresh' })
+  expect((await pane.find({ type: 'Code' }))?.props.source).toBe(['@@ -1 +1,2 @@', '-old', '+new', '+more'].join('\n'))
+
+  repo.diff = ''
+  await ui.press({ key: 'stage:changes:src/changed.ts' })
+  expect(await pane.find({ type: 'Code' })).toBeUndefined()
+  expect(await pane.find({ type: 'Text', text: 'No changes to show.' })).toBeDefined()
+  await pane.unmount()
+  await ui.unmount()
+})
 
 const EXTENSIONS = '/home/brad/.vscode/extensions'
 const ICONS = `${EXTENSIONS}/vscode-icons-team.vscode-icons-13.0.0/icons`

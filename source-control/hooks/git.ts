@@ -103,6 +103,56 @@ export function commitFilesArgs(commit: Commit): string[] {
     : ['diff-tree', '--no-commit-id', '-r', '-z', '-M', '--name-status', '--root', commit.hash]
 }
 
+const DIFF = ['--no-color', '--no-ext-diff']
+
+/** The diff VS Code shows for a change: the working tree against the index, or the index against HEAD. */
+export function changeDiffArgs(change: Change): string[] {
+  if (change.group === 'staged') return ['diff', ...DIFF, '--cached', '-M', '--', ...(change.orig ? [change.orig] : []), change.path]
+  // --no-index exits 1 when the sides differ, which for a new file they always do.
+  if (change.letter === 'U') return ['diff', ...DIFF, '--no-index', '--', '/dev/null', change.path]
+  return ['diff', ...DIFF, '--', change.path]
+}
+
+/** One file of a commit against the commit's first parent, as commitFilesArgs lists it. */
+export function commitDiffArgs(commit: Pick<Commit, 'hash' | 'parents'>, file: CommitFile): string[] {
+  const parent = commit.parents[0]
+  return ['diff-tree', '-p', '-M', ...DIFF, '--no-commit-id', ...(parent ? [parent, commit.hash] : ['--root', commit.hash]), '--', ...(file.orig ? [file.orig] : []), file.path]
+}
+
+/** A diff from its first hunk on; one with no hunks (binary, a pure rename, a mode change) stays whole. */
+export function diffHunks(out: string): string {
+  const at = out.search(/^@@ /m)
+  return (at < 0 ? out : out.slice(at)).replace(/\n$/, '')
+}
+
+/** One side of a VS Code diff: the file in the working tree, the blob `rev:path` (`''` is the index), or an empty file. */
+export type Side = { kind: 'worktree'; path: string } | { kind: 'empty'; path: string } | { kind: 'blob'; rev: string; path: string }
+
+/** The two sides VS Code's Source Control compares for a change; none for an untracked or conflicted file, which it opens as is. */
+export function changeSides(change: Change): [Side, Side] | undefined {
+  if (change.letter === 'U' || change.group === 'merge') return undefined
+  const old = change.orig ?? change.path
+  if (change.group === 'staged') {
+    return [
+      change.letter === 'A' ? { kind: 'empty', path: change.path } : { kind: 'blob', rev: 'HEAD', path: old },
+      change.letter === 'D' ? { kind: 'empty', path: change.path } : { kind: 'blob', rev: '', path: change.path },
+    ]
+  }
+  return [
+    change.isNew ? { kind: 'empty', path: change.path } : { kind: 'blob', rev: '', path: old },
+    change.letter === 'D' ? { kind: 'empty', path: change.path } : { kind: 'worktree', path: change.path },
+  ]
+}
+
+/** A commit's file before and after the commit; an added or deleted side, or a root commit's parent, is empty. */
+export function commitSides(commit: Pick<Commit, 'hash' | 'parents'>, file: CommitFile): [Side, Side] {
+  const parent = commit.parents[0]
+  return [
+    parent && file.letter !== 'A' ? { kind: 'blob', rev: parent, path: file.orig ?? file.path } : { kind: 'empty', path: file.path },
+    file.letter === 'D' ? { kind: 'empty', path: file.path } : { kind: 'blob', rev: commit.hash, path: file.path },
+  ]
+}
+
 /** Reads `git diff-tree -z --name-status`: a status field, then one path, or two for a rename or copy. */
 export function parseNameStatus(out: string): CommitFile[] {
   const fields = out.split('\0')

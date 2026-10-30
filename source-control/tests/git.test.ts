@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { commitFilesArgs, discardAllArgs, discardArgs, LOG_FORMAT, parseLog, parseNameStatus, parseRefs, parseStatus, stageArgs, unstageArgs } from '../hooks/git'
+import { changeDiffArgs, changeSides, commitDiffArgs, commitFilesArgs, commitSides, diffHunks, discardAllArgs, discardArgs, LOG_FORMAT, parseLog, parseNameStatus, parseRefs, parseStatus, stageArgs, unstageArgs } from '../hooks/git'
 import { layout, pillSvg, REF_COLOR, rowSvg } from '../hooks/graph'
-import { LINUX_LAUNCH, openCommand } from '../hooks/open'
+import { diffCommand, LINUX_LAUNCH, openCommand } from '../hooks/open'
 
 const z = (...entries: string[]) => entries.join('\0') + '\0'
 
@@ -142,6 +142,53 @@ describe('commit files', () => {
   })
 })
 
+describe('diffs', () => {
+  const commit = { hash: 'c2', parents: ['c1', 'm'] }
+
+  test('each change diffs the way VS Code compares it', () => {
+    expect(changeDiffArgs({ path: 'src/a.ts', letter: 'M', group: 'changes' })).toEqual(['diff', '--no-color', '--no-ext-diff', '--', 'src/a.ts'])
+    expect(changeDiffArgs({ path: 'gone.md', letter: 'D', group: 'changes' })).toEqual(['diff', '--no-color', '--no-ext-diff', '--', 'gone.md'])
+    expect(changeDiffArgs({ path: 'notes.txt', letter: 'U', group: 'changes', isNew: true })).toEqual(['diff', '--no-color', '--no-ext-diff', '--no-index', '--', '/dev/null', 'notes.txt'])
+    expect(changeDiffArgs({ path: 'src/a.ts', letter: 'M', group: 'staged' })).toEqual(['diff', '--no-color', '--no-ext-diff', '--cached', '-M', '--', 'src/a.ts'])
+    expect(changeDiffArgs({ path: 'new name.ts', orig: 'old.ts', letter: 'R', group: 'staged' })).toEqual(['diff', '--no-color', '--no-ext-diff', '--cached', '-M', '--', 'old.ts', 'new name.ts'])
+    expect(changeDiffArgs({ path: 'both.ts', letter: '!', group: 'merge' })).toEqual(['diff', '--no-color', '--no-ext-diff', '--', 'both.ts'])
+  })
+
+  test('a commit file diffs against the first parent, a root commit\'s against nothing', () => {
+    expect(commitDiffArgs(commit, { path: 'src/a.ts', letter: 'M' })).toEqual(['diff-tree', '-p', '-M', '--no-color', '--no-ext-diff', '--no-commit-id', 'c1', 'c2', '--', 'src/a.ts'])
+    expect(commitDiffArgs(commit, { path: 'b.ts', orig: 'a.ts', letter: 'R' })).toEqual(['diff-tree', '-p', '-M', '--no-color', '--no-ext-diff', '--no-commit-id', 'c1', 'c2', '--', 'a.ts', 'b.ts'])
+    expect(commitDiffArgs({ hash: 'c0', parents: [] }, { path: 'a.ts', letter: 'A' })).toEqual(['diff-tree', '-p', '-M', '--no-color', '--no-ext-diff', '--no-commit-id', '--root', 'c0', '--', 'a.ts'])
+  })
+
+  test('the header before the first hunk is dropped, and a diff with no hunks kept whole', () => {
+    const out = ['diff --git a/a.ts b/a.ts', 'index 1..2 100644', '--- a/a.ts', '+++ b/a.ts', '@@ -1,2 +1,2 @@', ' a', '-b', '+B', ' ', ''].join('\n')
+    expect(diffHunks(out)).toBe(['@@ -1,2 +1,2 @@', ' a', '-b', '+B', ' '].join('\n'))
+    const rename = 'diff --git a/a.ts b/b.ts\nsimilarity index 100%\nrename from a.ts\nrename to b.ts\n'
+    expect(diffHunks(rename)).toBe(rename.trimEnd())
+    expect(diffHunks('')).toBe('')
+  })
+
+  test('VS Code compares a change\'s index and working tree, or HEAD and index, and opens an untracked file as is', () => {
+    expect(changeSides({ path: 'a.ts', letter: 'M', group: 'changes' })).toEqual([{ kind: 'blob', rev: '', path: 'a.ts' }, { kind: 'worktree', path: 'a.ts' }])
+    expect(changeSides({ path: 'a.ts', letter: 'D', group: 'changes' })).toEqual([{ kind: 'blob', rev: '', path: 'a.ts' }, { kind: 'empty', path: 'a.ts' }])
+    expect(changeSides({ path: 'a.ts', letter: 'A', group: 'changes', isNew: true })).toEqual([{ kind: 'empty', path: 'a.ts' }, { kind: 'worktree', path: 'a.ts' }])
+    expect(changeSides({ path: 'a.ts', letter: 'M', group: 'staged' })).toEqual([{ kind: 'blob', rev: 'HEAD', path: 'a.ts' }, { kind: 'blob', rev: '', path: 'a.ts' }])
+    expect(changeSides({ path: 'a.ts', letter: 'A', group: 'staged' })).toEqual([{ kind: 'empty', path: 'a.ts' }, { kind: 'blob', rev: '', path: 'a.ts' }])
+    expect(changeSides({ path: 'a.ts', letter: 'D', group: 'staged' })).toEqual([{ kind: 'blob', rev: 'HEAD', path: 'a.ts' }, { kind: 'empty', path: 'a.ts' }])
+    expect(changeSides({ path: 'b.ts', orig: 'a.ts', letter: 'R', group: 'staged' })).toEqual([{ kind: 'blob', rev: 'HEAD', path: 'a.ts' }, { kind: 'blob', rev: '', path: 'b.ts' }])
+    expect(changeSides({ path: 'n.txt', letter: 'U', group: 'changes', isNew: true })).toBeUndefined()
+    expect(changeSides({ path: 'both.ts', letter: '!', group: 'merge' })).toBeUndefined()
+  })
+
+  test('a commit file compares its parent\'s blob with its own', () => {
+    expect(commitSides(commit, { path: 'a.ts', letter: 'M' })).toEqual([{ kind: 'blob', rev: 'c1', path: 'a.ts' }, { kind: 'blob', rev: 'c2', path: 'a.ts' }])
+    expect(commitSides(commit, { path: 'b.ts', orig: 'a.ts', letter: 'R' })).toEqual([{ kind: 'blob', rev: 'c1', path: 'a.ts' }, { kind: 'blob', rev: 'c2', path: 'b.ts' }])
+    expect(commitSides(commit, { path: 'a.ts', letter: 'A' })).toEqual([{ kind: 'empty', path: 'a.ts' }, { kind: 'blob', rev: 'c2', path: 'a.ts' }])
+    expect(commitSides(commit, { path: 'a.ts', letter: 'D' })).toEqual([{ kind: 'blob', rev: 'c1', path: 'a.ts' }, { kind: 'empty', path: 'a.ts' }])
+    expect(commitSides({ hash: 'c0', parents: [] }, { path: 'a.ts', letter: 'A' })).toEqual([{ kind: 'empty', path: 'a.ts' }, { kind: 'blob', rev: 'c0', path: 'a.ts' }])
+  })
+})
+
 describe('openCommand', () => {
   test('opens through systemd-run inside filetree\'s detached launch', () => {
     const { argv, init } = openCommand('/repo/src/a file.ts', '/repo')
@@ -151,6 +198,12 @@ describe('openCommand', () => {
     ])
     expect(init).toEqual({ cwd: '/repo', timeoutMs: 10_000 })
     expect(LINUX_LAUNCH).toBe('setsid -f -w "$@" </dev/null >/dev/null 2>&1 & p=$!; sleep 1; kill -0 "$p" 2>/dev/null && exit 0; wait "$p"')
+  })
+
+  test('a diff runs code -d with the old side first', () => {
+    const { argv, init } = diffCommand('/tmp/source-control-diff/repo/index/a.ts', '/repo/a.ts', '/repo')
+    expect(argv.slice(4)).toEqual(['systemd-run', '--user', '--collect', '--quiet', '--same-dir', 'code', '-d', '/tmp/source-control-diff/repo/index/a.ts', '/repo/a.ts'])
+    expect(init).toEqual({ cwd: '/repo', timeoutMs: 10_000 })
   })
 })
 

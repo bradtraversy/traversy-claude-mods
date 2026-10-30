@@ -1,18 +1,23 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement, Timer } from 'claude-code'
 
-import type { Change, Commit, CommitFile, Confirm, Group, Repo, Scm } from '../types'
-import { commitFilesArgs, discardAllArgs, discardArgs, firstLine, LOG_FORMAT, parseLog, parseNameStatus, parseStatus, splitPath, stageArgs, unstageAllArgs, unstageArgs } from './git'
+import type { Change, Commit, CommitFile, Confirm, Diff, DiffTarget, Group, Repo, Scm } from '../types'
+import { changeDiffArgs, changeSides, commitDiffArgs, commitFilesArgs, commitSides, diffHunks, discardAllArgs, discardArgs, firstLine, LOG_FORMAT, parseLog, parseNameStatus, parseStatus, splitPath, stageArgs, unstageAllArgs, unstageArgs } from './git'
+import type { Side } from './git'
 import { graphWidth, layout, passSvg, pillSvg, REF_COLOR, REMOTE_COLOR, ROW_HEIGHT, rowSvg, textGraph } from './graph'
 import { fileSvgs, ICON_SIZE } from './icons'
 import { BADGE_BG, BADGE_FG, fileIcon, HOVER_BG, letterColor, SELECTED_BG, WARN } from './look'
-import { openCommand } from './open'
+import { diffCommand, openCommand } from './open'
 
 const PANE = 'source-control'
 const TITLE = 'Source Control'
+const DIFF_PANE = 'source-control-diff'
+// A Code drawing holds 100,000 characters, and a diff cut mid-hunk does not parse.
+const MAX_DIFF = 100_000
 const PAGE = 50
 const MAX_ROWS = 300
 const MAX_CACHED = 40
+const OPEN_FILE = '↗'
 
 // Change the tag when Scm's fields change: it declines what an earlier version stored.
 const scm = atom({ plugin: 'source-control', key: 'scm' } as const, { repo: null, error: '' } as Scm, { shape: 'scm-1' })
@@ -24,6 +29,7 @@ const busy = atom({ plugin: 'source-control', key: 'busy' } as const, '')
 const limit = atom({ plugin: 'source-control', key: 'limit' } as const, PAGE)
 const expanded = atom({ plugin: 'source-control', key: 'expanded' } as const, [] as string[])
 const files = atom({ plugin: 'source-control', key: 'files' } as const, {} as Record<string, CommitFile[]>, { shape: 'files-1' })
+const diff = atom({ plugin: 'source-control', key: 'diff' } as const, null as Diff | null, { shape: 'diff-1' })
 
 const EDITS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit'])
 
@@ -75,6 +81,9 @@ function refresh($: EngineInterface): Promise<void> {
       }
       await update($, scm, () => next)
     } while (again)
+    // An open diff follows the repo, as VS Code's diff editor does.
+    const shown = await read($, diff)
+    if (shown) await fillDiff($, shown.target)
   })().finally(() => {
     running = null
   })
@@ -134,14 +143,104 @@ async function openCommitFile($: EngineInterface, root: string, file: CommitFile
 }
 
 async function openInCode($: EngineInterface, root: string, path: string): Promise<void> {
-  const { name } = splitPath(path)
-  const { argv, init } = openCommand(`${root}/${path}`, root)
+  await launch($, splitPath(path).name, openCommand(`${root}/${path}`, root))
+}
+
+async function launch($: EngineInterface, name: string, { argv, init }: ReturnType<typeof openCommand>): Promise<void> {
   try {
     const run = await $.process.run(argv, init)
     if (run.exitCode !== 0) $.ui.toast(`Could not open ${name} in VS Code: ${firstLine(run.stderr) || `systemd-run exited ${run.exitCode}`}`)
   } catch (err) {
     $.ui.toast(`Could not open ${name} in VS Code: ${err instanceof Error ? err.message : String(err)}`)
   }
+}
+
+function targetPath(target: DiffTarget): string {
+  return target.kind === 'change' ? target.change.path : target.file.path
+}
+
+/** VS Code's diff titles: the file, then which side of it the diff shows. */
+function diffTitle(target: DiffTarget): string {
+  const { name } = splitPath(targetPath(target))
+  if (target.kind === 'commit') return `${name} (${target.commit.hash.slice(0, 7)})`
+  return `${name} (${target.change.group === 'staged' ? 'Index' : 'Working Tree'})`
+}
+
+async function readDiff($: EngineInterface, target: DiffTarget): Promise<Pick<Diff, 'source' | 'size' | 'note'>> {
+  const args = target.kind === 'change' ? changeDiffArgs(target.change) : commitDiffArgs(target.commit, target.file)
+  try {
+    const run = await git($, target.root, { args })
+    if (run.exitCode !== 0 && !(run.exitCode === 1 && args.includes('--no-index'))) {
+      return { note: `Could not read the diff: ${firstLine(run.stderr) || `git exited ${run.exitCode}`}` }
+    }
+    const source = diffHunks(run.stdout)
+    if (run.isStdoutTruncated || source.length > MAX_DIFF) return { size: source.length }
+    return source ? { source } : { note: 'No changes to show.' }
+  } catch (err) {
+    return { note: `Could not read the diff: ${err instanceof Error ? err.message : String(err)}` }
+  }
+}
+
+/** Reads `target`'s diff into the pane, unless the pane has moved to another file or closed meanwhile. */
+async function fillDiff($: EngineInterface, target: DiffTarget): Promise<void> {
+  const found = await readDiff($, target)
+  const key = JSON.stringify(target)
+  await update($, diff, view => (view && JSON.stringify(view.target) === key ? { title: view.title, path: view.path, target: view.target, ...found } : view))
+}
+
+/** Opens the diff pane on `target` in front of Source Control, then fills it when git answers. */
+async function showDiff($: EngineInterface, target: DiffTarget): Promise<void> {
+  const title = diffTitle(target)
+  await update($, diff, () => ({ title, path: targetPath(target), target }))
+  // Panes show one at a time, the rest tabs; `focus` brings this one forward, where the surface allows it.
+  const opened = await $.ui.open({ id: DIFF_PANE, title, focus: true })
+  if (!opened.isPlaced) $.ui.toast(`The diff pane is not shown: ${opened.reason}`)
+  else if (!(await $.ui.panes()).some(pane => pane.id === DIFF_PANE && pane.isShown)) $.ui.toast(`${title} is open in its own tab, behind Source Control.`)
+  await fillDiff($, target)
+}
+
+/** A side as a file VS Code can open: the working tree's own, else a copy written under `dir`. */
+async function sideFile($: EngineInterface, root: string, dir: string, side: Side): Promise<string> {
+  if (side.kind === 'worktree') return `${root}/${side.path}`
+  const file = `${dir}/${side.kind === 'empty' ? 'empty' : side.rev.slice(0, 7) || 'index'}/${side.path}`
+  let text = ''
+  if (side.kind === 'blob') {
+    const run = await git($, root, { args: ['cat-file', 'blob', `${side.rev}:${side.path}`] })
+    if (run.exitCode !== 0) throw new Error(firstLine(run.stderr) || `git exited ${run.exitCode}`)
+    text = run.stdout
+  }
+  await $.fs.write(file, text)
+  return file
+}
+
+let diffsInCode = false // userConfig.diff_view: `vscode` opens diffs in VS Code instead of the pane
+
+async function viewDiff($: EngineInterface, target: DiffTarget): Promise<void> {
+  try {
+    await (diffsInCode ? openDiffInCode($, target) : showDiff($, target))
+  } catch (err) {
+    $.ui.toast(`Could not show the diff of ${splitPath(targetPath(target)).name}: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
+
+/** Opens `target` in VS Code's diff editor, as its Source Control does; an untracked or conflicted file opens as it is. */
+async function openDiffInCode($: EngineInterface, target: DiffTarget): Promise<void> {
+  const path = targetPath(target)
+  const sides = target.kind === 'change' ? changeSides(target.change) : commitSides(target.commit, target.file)
+  if (!sides) return openInCode($, target.root, path)
+  const { name } = splitPath(path)
+  let left: string
+  let right: string
+  try {
+    const tmp = (await $.env.get('XDG_RUNTIME_DIR').catch(() => undefined)) || '/tmp'
+    const dir = `${tmp}/source-control-diff/${splitPath(target.root).name}`
+    left = await sideFile($, target.root, dir, sides[0])
+    right = await sideFile($, target.root, dir, sides[1])
+  } catch (err) {
+    $.ui.toast(`Could not open the diff of ${name}: ${err instanceof Error ? err.message : String(err)}`)
+    return
+  }
+  await launch($, name, diffCommand(left, right, target.root))
 }
 
 async function commit($: EngineInterface, text: string, stageAll = false): Promise<void> {
@@ -194,7 +293,9 @@ async function show($: EngineInterface): Promise<void> {
   if ((await read($, scm)).repo) await $.ui.open({ id: PANE, title: TITLE })
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  diffsInCode = options.diff_view === 'vscode'
+
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'scm', description: 'Open the Source Control pane' })
     $.clock.after(0, () => void show($))
@@ -217,6 +318,36 @@ export const register: Register = on => {
   on('turn.complete', ($, e, next) => {
     schedule($)
     return next(e)
+  })
+
+  // A closed diff pane stops following the repo until a file is clicked again; it only watches the close.
+  on('ui.close', { id: DIFF_PANE }, async ($, e, next) => {
+    await update($, diff, () => null)
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'Pane', requestId: DIFF_PANE }, async ($, e) => {
+    const { Box, Text, Button, Code } = $.ui.resolve(e)
+    const view = await read($, diff)
+    if (view?.size !== undefined) {
+      return (
+        <Box flexDirection="column" paddingX={1} gap={1}>
+          <Text dimColor>{`This diff is too large to show here (${Math.round(view.size / 1_000)}k characters).`}</Text>
+          <Box flexDirection="row">
+            <Button key="diff-in-code" label="Open in VS Code" onPress={() => void openDiffInCode($, view.target)} />
+          </Box>
+        </Box>
+      )
+    }
+    if (view?.source === undefined) {
+      return (
+        <Box paddingX={1}>
+          <Text dimColor>{view ? (view.note ?? 'Loading') : 'Click a changed file to see its diff.'}</Text>
+        </Box>
+      )
+    }
+    // A diff with no hunks (binary, a pure rename) is git's own words, drawn as they are.
+    return /^@@ /m.test(view.source) ? <Code source={view.source} format="diff" path={view.path} /> : <Code source={view.source} />
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -309,15 +440,18 @@ export const register: Register = on => {
         : group === 'merge'
           ? [icon('stage-merge', '+', () => stageAll('merge'))]
           : [icon('discard-all', '↶', () => ask$({ kind: 'discard-all' })), icon('stage-all', '+', () => stageAll('changes'))]
-    const rowActions = (c: Change, id: string): RenderElement[] =>
-      c.group === 'staged'
+    // VS Code's row actions, Open File first.
+    const rowActions = (c: Change, id: string): RenderElement[] => [
+      icon(`openfile:${id}`, OPEN_FILE, () => void openFile($, repo.root, c)),
+      ...(c.group === 'staged'
         ? [icon(`unstage:${id}`, '−', () => void act($, 'Unstage', repo.root, [{ args: unstageArgs(c, repo.hasHead) }]))]
         : c.group === 'merge'
           ? [icon(`stage:${id}`, '+', () => void act($, 'Stage', repo.root, [{ args: stageArgs(c) }]))]
           : [
               icon(`discard:${id}`, '↶', () => ask$({ kind: 'discard', path: id })),
               icon(`stage:${id}`, '+', () => void act($, 'Stage', repo.root, [{ args: stageArgs(c) }])),
-            ]
+            ]),
+    ]
 
     const row = (c: Change) => {
       const id = `${c.group}:${c.path}`
@@ -341,7 +475,7 @@ export const register: Register = on => {
         <Box key={`row:${id}`} flexDirection="row" alignItems="center" paddingLeft={3} hover={{ backgroundColor: HOVER_BG }}>
           {svgIcon(`icon:${id}`, name)}
           <Box flexGrow={1} flexShrink={1} overflow="hidden">
-            <Button key={`open:${id}`} plain onPress={() => void openFile($, repo.root, c)}>
+            <Button key={`open:${id}`} plain onPress={() => void viewDiff($, { kind: 'change', root: repo.root, change: c })}>
               {letterIcon(name)}
               <Text color={color} strikethrough={c.letter === 'D'}>{name}</Text>
               {dir ? ' ' : ''}
@@ -461,13 +595,14 @@ export const register: Register = on => {
             {lead()}
             {svgIcon(`cicon:${c.hash}:${f.path}`, name)}
             <Box flexGrow={1} flexShrink={1} overflow="hidden">
-              <Button key={`copen:${c.hash}:${f.path}`} plain onPress={() => void openCommitFile($, repo.root, f)}>
+              <Button key={`copen:${c.hash}:${f.path}`} plain onPress={() => void viewDiff($, { kind: 'commit', root: repo.root, commit: { hash: c.hash, parents: c.parents }, file: f })}>
                 {letterIcon(name)}
                 <Text strikethrough={f.letter === 'D'}>{name}</Text>
                 {dir ? ' ' : ''}
                 <Text dimColor>{dir}</Text>
               </Button>
             </Box>
+            {reveal([icon(`copenfile:${c.hash}:${f.path}`, OPEN_FILE, () => void openCommitFile($, repo.root, f))])}
             <Box flexShrink={0} width={2} justifyContent="flex-end">
               <Text color={letterColor({ path: f.path, letter: f.letter, group: 'changes' })} weight="bold">{f.letter}</Text>
             </Box>
