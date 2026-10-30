@@ -10,10 +10,6 @@ Source Control opens a pane beside the chat modeled on VS Code's Source Control 
 - The commit graph, with the current branch and its upstream labeled
 - Click a commit to list its files, and click a file to open it in VS Code
 
-In the desktop Code tab the pane sits beside the chat, next to the other mods:
-
-![Source Control pane beside the chat in Claude Desktop, with Session HUD and Tool Cards](../docs/images/source-control-app.png)
-
 ## Install
 
 Add the marketplace once, then install the mod:
