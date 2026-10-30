@@ -2,7 +2,7 @@
 
 Source Control opens a pane beside the chat modeled on VS Code's Source Control view. It shows the session's Git changes in Merge, Staged and Changes groups, lets you stage, unstage, discard and commit, and draws the commit graph below them. On the desktop each file shows the same icon VS Code shows when the vscode-icons theme is installed.
 
-<img src="../docs/images/source-control.png" alt="Source Control pane with staged and unstaged changes, file icons, and the commit graph with an expanded commit" width="360">
+<img src="../docs/images/source-control.png" alt="Source Control pane with changed files, file icons, and the commit graph with an expanded commit" width="360">
 
 - Changes grouped as VS Code groups them, with counts and VS Code's status colors
 - Stage, unstage and discard per file or per group, with discard asking first
