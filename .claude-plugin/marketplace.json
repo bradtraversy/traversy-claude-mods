@@ -24,6 +24,11 @@
       "name": "source-control",
       "source": "./source-control",
       "description": "A Source Control pane beside the chat, modeled on VS Code: changes, stage, discard, commit, and the commit graph"
+    },
+    {
+      "name": "blast-radius",
+      "source": "./blast-radius",
+      "description": "Holds risky Bash commands and shows what they would change, or asks through the app's permission prompt where nothing can draw the hold"
     }
   ]
 }

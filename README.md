@@ -1,6 +1,6 @@
 # Traversy Claude Mods
 
-Four small Claude Code mods for long sessions: a telemetry strip above the prompt, cleaner tool-use cards in the transcript, suggested next prompts after each turn, and a VS Code style Source Control pane beside the chat. All four work in the terminal and in the Code tab of Claude Desktop.
+Five small Claude Code mods for long sessions: a telemetry strip above the prompt, cleaner tool-use cards in the transcript, suggested next prompts after each turn, a VS Code style Source Control pane beside the chat, and a hold on risky Bash commands that shows what they would change. All five work in the terminal and in the Code tab of Claude Desktop.
 
 ```bash
 claude plugin marketplace add bradtraversy/traversy-claude-mods
@@ -8,6 +8,7 @@ claude plugin install session-hud@traversy-mods
 claude plugin install tool-cards@traversy-mods
 claude plugin install next-steps@traversy-mods
 claude plugin install source-control@traversy-mods
+claude plugin install blast-radius@traversy-mods
 ```
 
 These go with the following [YouTube Video](https://youtu.be/uizaxuzgEAk)
@@ -62,6 +63,16 @@ claude plugin install source-control@traversy-mods
 ```
 
 [Read the Source Control guide](./source-control/README.md)
+
+### [Blast Radius](./blast-radius/README.md)
+
+Holds a recursive `rm`, a force push or a database migration before it runs and shows what it would delete or overwrite, with Cancel and Proceed. Where nothing can draw the hold, as in a session the desktop app hosts, the app's own permission prompt asks instead. A fork of [blast-radius](https://github.com/hamzafer/claude-code-mods/tree/main/mods/blast-radius) by [Hamza Zafar](https://github.com/hamzafer).
+
+```bash
+claude plugin install blast-radius@traversy-mods
+```
+
+[Read the Blast Radius guide](./blast-radius/README.md)
 
 The images show the mods in Claude Desktop. Exact spacing and colors can vary by platform and Claude version.
 
@@ -122,6 +133,7 @@ claude plugin install session-hud@traversy-mods
 claude plugin install tool-cards@traversy-mods
 claude plugin install next-steps@traversy-mods
 claude plugin install source-control@traversy-mods
+claude plugin install blast-radius@traversy-mods
 ```
 
 Inside an interactive session, the same commands start with `/plugin install` instead of `claude plugin install`.
@@ -151,7 +163,7 @@ You can also use the desktop plugin manager. Click the plus button beside the pr
 
 ## How the mods work together
 
-Tool Cards owns tool-use rows in the transcript. Session HUD and Next Steps share the band above the prompt: each passes on what the other draws, so the suggestions sit above the telemetry strip. Source Control draws in its own pane beside the chat and does not touch the transcript or the band.
+Tool Cards owns tool-use rows in the transcript. Session HUD and Next Steps share the band above the prompt: each passes on what the other draws, so the suggestions sit above the telemetry strip. Source Control draws in its own pane beside the chat and does not touch the transcript or the band. Blast Radius draws only while it holds a command, in a pane of its own or, when the window is too narrow, a band below the other two.
 
 ## Develop locally from scratch
 
@@ -172,6 +184,7 @@ claude plugin validate ./session-hud
 claude plugin validate ./tool-cards
 claude plugin validate ./next-steps
 claude plugin validate ./source-control
+claude plugin validate ./blast-radius
 ```
 
 Validation reads the mod without executing it. Review the reported `hooks:` and `calls:` lines to see what it handles and which Claude Code APIs it uses.
@@ -183,6 +196,7 @@ claude plugin test ./session-hud
 claude plugin test ./tool-cards
 claude plugin test ./next-steps
 claude plugin test ./source-control
+claude plugin test ./blast-radius
 ```
 
 The interface tests mount each mod on simulated terminal and desktop surfaces.
@@ -321,7 +335,7 @@ claude plugin validate ./path-to-mod
 
 Read the reported handlers and API calls, then inspect the source. A mod can potentially read files and environment variables, start processes, make network requests, observe prompts and tool calls, alter session behavior, and spend model usage.
 
-The mods are intentionally small enough to inspect directly. Next Steps sends your last few messages to Haiku after each turn. Source Control runs Git in the session's repository, reads the vscode-icons theme from `~/.vscode/extensions`, and starts VS Code when you click a file.
+The mods are intentionally small enough to inspect directly. Next Steps sends your last few messages to Haiku after each turn. Source Control runs Git in the session's repository, reads the vscode-icons theme from `~/.vscode/extensions`, and starts VS Code when you click a file. Blast Radius runs `du`, `find` and `git` to preview what a held command would change, without running the command itself.
 
 ## Documentation
 
